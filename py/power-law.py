@@ -32,31 +32,34 @@ def pl_2(n = 10 ** 6, alpha = 2.5, x_min = 1):
     
     bin_width = 0.1
     bin_list = [1, 1.1]
-    multiplier = 2.5 # 2 (> 1)
+    multiplier = 2 # 2 (> 1)
     
     while bin_list[-1] <= y.max():
         bin_width = multiplier * bin_width
         bin_list.append(bin_list[-1] + bin_width)
     
-    bin_intervals = []
+    # bin_intervals = []
+    # 
+    # for i in range(len(bin_list)):
+    #     if i == len(bin_list) - 1:
+    #         pass
+    #     else:
+    #         bin_intervals.append([bin_list[i], bin_list[i + 1]])
+    # 
+    # weights = []
+    # 
+    # for i in y:
+    #     for j in bin_intervals:
+    #         if (i >= j[0] and i < j[1]):
+    #             weights.append((j[0] + j[1]) / 2)
+    # 
+    # weights = np.array(weights)
+    # y_binned = np.histogram(y, bins = bin_list, density = True,
+    #            weights = weights)[0]
     
-    for i in range(len(bin_list)):
-        if i == len(bin_list) - 1:
-            pass
-        else:
-            bin_intervals.append([bin_list[i], bin_list[i + 1]])
-    
-    weights = []
-    
-    for i in y:
-        for j in bin_intervals:
-            if (i >= j[0] and i < j[1]):
-                weights.append((j[0] + j[1]) / 2)
-    
-    weights = np.array(weights)
-    y_binned = np.histogram(y, bins = bin_list, density = True,
-               weights = weights)[0]
-    # y_binned = y_binned / np.diff(bin_list)
+    y_hist = np.histogram(y, bins = bin_list, density = False)
+    y_binned = y_hist[0] / np.diff(y_hist[1])
+    y_bineed = y_binned / sum(y_binned)
     x_bins = np.array(bin_list[0:(len(bin_list) - 1)])
     
     return([x_bins, y_binned])

@@ -185,7 +185,7 @@ def create_turtles(n = 10 **2, tau_range = (23.5, 24.6), tau_mean = 24.15,
 
 # np.array(labren(72272)["ts"]).mean() ~ 4727.833
 def run_model(
-    n = 10 **2, tau_range = (23.5, 24.6), tau_mean = 24.15, tau_dp = 0.2, 
+    n = 10 ** 3, tau_range = (23.5, 24.6), tau_mean = 24.15, tau_dp = 0.2, 
     k_range = (0.001, 0.01), k_mean = 0.001, k_dp = 0.005, lam_c = 4727.833, 
     lam_c_tol = 1000, labren_id = 1, by = "month", n_cycles = 3, start_at = 0, 
     repetitions = 10 ** 2, plot = True
@@ -255,19 +255,21 @@ def plot_model_density(turtles, lam_c, labren_id, n_cycles, repetitions):
     else:
         colors = ["#f98e09", "#bc3754", "#57106e", "#5ec962"]
     
+    n = len(turtles[list(turtles)[0]])
     lat = labren(labren_id)["lat"]
     start = list(turtles)[1].title()
     labels = [i.title() for i in list(turtles)]
     
-    title = ("$\\lambda_c = {lam_c}$, Latitude = ${lat}$, " +\
-             "Cycles = ${n_cycles}$, Start of cycle = {start}, " +\
+    title = ("N = ${n}$, $\\lambda_c = {lam_c}$, Latitude = ${lat}$, " +\
+             "Cycles = ${n_cycles}$, Start = {start}, " +\
              "Repetitions = ${repetitions}$")\
-             .format(lam_c = str(lam_c), lat = str(lat), 
+             .format(n = str(n), lam_c = str(lam_c), lat = str(lat), 
               n_cycles = str(n_cycles), start = start, 
               repetitions = str(repetitions))
     
     plt.rcParams.update({'font.size': 10})
     plt.clf()
+    
     fig, ax = plt.subplots()
     
     for i, j in enumerate(turtles):

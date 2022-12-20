@@ -71,6 +71,7 @@ def labren(id, name = None, by = "month",
             ["Sep", "Oct", "Nov"]
             ]
         
+        keys = ["name", "id", "country", "lon", "lat", "annual"]
         labels = ["Summer", "Autumn", "Winter", "Spring"]
         data = out
         out = {}
@@ -187,7 +188,7 @@ def run_model(
     n = 10 **2, tau_range = (23.5, 24.6), tau_mean = 24.15, tau_dp = 0.2, 
     k_range = (0.001, 0.01), k_mean = 0.001, k_dp = 0.005, lam_c = 4727.833, 
     lam_c_tol = 1000, labren_id = 1, by = "month", n_cycles = 3, start_at = 0, 
-    repetitions = 100, plot = True
+    repetitions = 10 ** 2, plot = True
     ):
     turtles_0 = create_turtles(
         n, tau_range, tau_mean, tau_dp, k_range, k_mean, k_dp
@@ -335,8 +336,10 @@ def reorder(x, start_at = 0):
 
 def invisible(x): return(print("Ignore this message."))
 
-labren(72272)
-x = run_model(labren_id = 72272, by = "season", n_cycles = 2)
+# labren(72272)
+x = run_model(
+    labren_id = 72272, by = "season", n_cycles = 2, repetitions = 100
+    )
 
-labren(1)
-x = run_model(labren_id = 1, by = "season", n_cycles = 2)
+# labren(1)
+x = run_model(labren_id = 1, by = "season", n_cycles = 2, repetitions = 100)

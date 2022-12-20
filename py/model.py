@@ -1,11 +1,14 @@
+## Source this file before using it.
+
+import functools
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 
 def f_exact(lam, lam_c, k, tau, tau_ref = 24):
-    log_f = (tau_ref - tau) / (1 + np.exp(1) ** (- k * (lam - lam_c)))
-    out = tau + log_f
+    logi_f = (tau_ref - tau) / (1 + np.exp(1) ** (- k * (lam - lam_c)))
+    out = tau + logi_f
 
     return(out)
 
@@ -21,9 +24,9 @@ def exact(f, lam_c, k, tau, lam_0 = 0, lam_n = 10, h = 10 ** (- 3)):
     
     return [lam_list, y_list]
 
-def plot_exact(f, lam_c = 5, k = 2, tau = 22, lam_0 = 0, lam_n = 10, 
+def plot_exact(f, lam_c, k, tau, lam_0 = 0, lam_n = 10, 
                h = 10 ** (- 3)):
-    exact_data = exact(f, lam_c, k, tau, lam_0, lam_n)
+    data = exact(f, lam_c, k, tau, lam_0, lam_n)
 
     title = ("$\\lambda_c = {lam_c}$, $k = {k}$, $\\tau = {tau}$")\
          .format(lam_c = str(lam_c), k = str(k), tau = str(tau))
@@ -32,7 +35,7 @@ def plot_exact(f, lam_c = 5, k = 2, tau = 22, lam_0 = 0, lam_n = 10,
     plt.clf()
     
     fig, ax = plt.subplots()
-    ax.plot(exact_data[0], exact_data[1], "r-", linewidth = 1)
+    ax.plot(data[0], data[1], "r-", linewidth = 1)
     ax.set_xlabel("$\\lambda$")
     ax.set_ylabel("$f(\\lambda, \\lambda_{c}, k, \\tau)$")
     ax.set_title(title, fontsize = 10)
@@ -41,18 +44,16 @@ def plot_exact(f, lam_c = 5, k = 2, tau = 22, lam_0 = 0, lam_n = 10,
 plot_exact(f_exact, lam_c = 5, k = 2, tau = 22, lam_0 = 0, lam_n = 10)
 plot_exact(f_exact, lam_c = 5, k = 2, tau = 26, lam_0 = 0, lam_n = 10)
 
-def labren(id, name = None,
+def labren(id, name = None, by = "month",
            file = "./data/labren/global_horizontal_means.csv"):
     data = (
-    pd.read_csv(filepath_or_buffer  = file, sep = ";")
-    .rename(str.lower, axis = "columns")
-    .loc[[id - 1]]
+        pd.read_csv(filepath_or_buffer  = file, sep = ";")
+        .rename(str.lower, axis = "columns")
+        .loc[[id - 1]]
     )
     
     out = {"name": name}
-    
-    for i in list(data):
-        out[i] = data.loc[id - 1, i]
+    for i in list(data): out[i] = data.loc[id - 1, i]
     
     data = (
         data.iloc[:, 5:17]
@@ -60,20 +61,49 @@ def labren(id, name = None,
     )
 
     data.reset_index(inplace = True)
-    data.columns = ["date", "x"]
+    data.columns = ["month", "x"]
     
     out["ts"] = list(data["x"])
     
+    if by == "season":
+        seasons = [
+            ["Dec", "Jan", "Feb"], ["Mar", "Apr", "May"], ["Jun", "Jul", "Aug"], 
+            ["Sep", "Oct", "Nov"]
+            ]
+        
+        labels = ["Summer", "Autumn", "Winter", "Spring"]
+        data = out
+        out = {}
+    
+        for i, j in enumerate(data):
+            if j in keys: out[j] = data[j]
+        
+        for i in range(4):
+            mean = np.mean([data[i.lower()] for i in seasons[i]])
+            out[labels[i].lower()] = mean
+        
+        out["ts"] = [out[i.lower()] for i in labels]
+    
     return(out)
 
-def plot_labren(id_1_index = 72272, id_2_index = 1, 
-                name_1 = "Nascente do rio Ailã", name_2 = "Arroio Chuí", 
+def plot_labren(id_1_index = 72272, id_2_index = 1,
                 label_1 = "Nascente do rio Ailã (Lat.: $5.272$)",
-                label_2 = "Arroio Chuí (Lat.: $- 33.752$)"):
-    x = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
-         "Oct", "Nov", "Dec"]
-    data_1 = labren(id_1_index, name_1)
-    data_2 = labren(id_2_index, name_2)
+                label_2 = "Arroio Chuí (Lat.: $- 33.752$)",
+                by = "month"):
+    if (by == "month"):
+        x = [
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep",
+            "Oct", "Nov", "Dec"
+            ]
+        
+        y_1 = labren(id_1_index)["ts"]
+        y_2 = labren(id_2_index)["ts"]
+        xlabel = "Month"
+    else:
+        x = ["Summer", "Autumn", "Winter", "Spring"]
+        y_1 = labren(id_1_index, by = "season")["ts"]
+        y_2 = labren(id_2_index, by = "season")["ts"]
+        xlabel = "Season"
     
     title = "Global Horizontal Solar Irradiation (Source: LABREN/INPE, 2017)"
     
@@ -81,20 +111,32 @@ def plot_labren(id_1_index = 72272, id_2_index = 1,
     plt.clf()
     
     fig, ax = plt.subplots()
-    ax.plot(x, data_1["ts"], "r-", label = label_1, linewidth = 1)
-    ax.plot(x, data_2["ts"], "b-", label = label_2,  linewidth = 1)
-    ax.set_xlabel("Month")
+    ax.plot(x, y_1, "r-", label = label_1, linewidth = 1)
+    ax.plot(x, y_2, "b-", label = label_2,  linewidth = 1)
+    ax.set_xlabel(xlabel)
     ax.set_ylabel("$Wh / m^{2}.day$")
     ax.set_title(title, fontsize = 10)
     
     plt.legend(fontsize = 8)
     plt.show()
 
-plot_labren()
+plot_labren(
+    id_1_index = 72272, id_2_index = 1,
+    label_1 = "Nascente do rio Ailã (Lat.: $5.272$)",
+    label_2 = "Arroio Chuí (Lat.: $- 33.752$)",
+    by = "month"
+    )
+
+plot_labren(
+    id_1_index = 72272, id_2_index = 1,
+    label_1 = "Nascente do rio Ailã (Lat.: $5.272$)",
+    label_2 = "Arroio Chuí (Lat.: $- 33.752$)",
+    by = "season"
+    )
 
 def entrain(lam, lam_c, k, tau, tau_ref = 24):
-    log_f = (tau_ref - tau) / (1 + np.exp(1) ** (- k * (lam - lam_c)))
-    out = tau + log_f
+    logi_f = (tau_ref - tau) / (1 + np.exp(1) ** (- k * (lam - lam_c)))
+    out = tau + logi_f
     error = np.random.uniform(low = 0, high = 1) * np.abs(out - tau)
     
     if out >= tau:
@@ -109,23 +151,23 @@ def entrain_turtles(turtles, turtles_0, lam, lam_c, lam_c_tol):
     out = []
     
     for i in range(n):
-        tau_0 = turtles_0[i][0]
-        tau = turtles[i][0]
-        k = turtles[i][1]
+        tau_0 = turtles_0[i]["tau"]
+        tau = turtles[i]["tau"]
+        k = turtles[i]["k"]
         
         if (lam >= (lam_c - lam_c_tol)):
-            out.append((entrain(lam, lam_c, k, tau, tau_ref = 24), k))
+            tau_i = entrain(lam, lam_c, k, tau, tau_ref = 24)
         else:
-            out.append((entrain(lam, lam_c, k, tau, tau_ref = tau_0), k))
+            tau_i = entrain(lam, lam_c, k, tau, tau_ref = tau_0)
+        
+        out.append({"tau": tau_i, "k": k})
     
     return(out)
 
-# np.array(labren(72272)["ts"]).mean() ~ 4727.833 
-def compute_model(n = 10 **2, tau_range = (23.5, 24.6), tau_mean = 24.15, 
-                  tau_dp = 0.2, k_range = (0.001, 0.01), k_mean = 0.001, 
-                  k_dp = 0.005, lam_c = 4727.833 , lam_c_tol = 1000, 
-                  labren_id = 1, plot = True):
-    turtles_0 = []
+def create_turtles(n = 10 **2, tau_range = (23.5, 24.6), tau_mean = 24.15, 
+                   tau_dp = 0.2, k_range = (0.001, 0.01), k_mean = 0.001, 
+                   k_dp = 0.005):
+    turtles = []
     
     for i in range(n):
         tau = np.random.normal(tau_mean, tau_dp)
@@ -136,54 +178,99 @@ def compute_model(n = 10 **2, tau_range = (23.5, 24.6), tau_mean = 24.15,
         if (k < k_range[0]): k = k_range[0]
         if (k > k_range[1]): k = k_range[1]
         
-        turtles_0.append((tau, k))
+        turtles.append({"tau": tau, "k": k})
     
-    labels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", 
-              "Aug", "Sep", "Oct", "Nov", "Dec"]
-    
-    turtles_by_month = {"Unentrain": turtles_0}
-    
-    for i in range(12):
-        key = list(turtles_by_month)[-1]
-        lam = labren(labren_id)["ts"][i]
-        turtles_i = entrain_turtles(
-            turtles_by_month[key], turtles_0, lam, lam_c, lam_c_tol = lam_c_tol
-            )
-        turtles_by_month[labels[i]] = turtles_i
-    
-    seasons = [["Dec", "Jan", "Feb"], ["Mar", "Apr", "May"],
-               ["Jun", "Jul", "Aug"], ["Sep", "Oct", "Nov"]]
-    labels = ["Summer", "Autumn", "Winter", "Spring"]
+    return(turtles)
 
-    turtles_by_season = {"Unentrain": turtles_0}
+# np.array(labren(72272)["ts"]).mean() ~ 4727.833
+def run_model(
+    n = 10 **2, tau_range = (23.5, 24.6), tau_mean = 24.15, tau_dp = 0.2, 
+    k_range = (0.001, 0.01), k_mean = 0.001, k_dp = 0.005, lam_c = 4727.833, 
+    lam_c_tol = 1000, labren_id = 1, by = "month", n_cycles = 3, start_at = 0, 
+    repetitions = 100, plot = True
+    ):
+    turtles_0 = create_turtles(
+        n, tau_range, tau_mean, tau_dp, k_range, k_mean, k_dp
+        )
     
-    for i in range(4):
-        key = list(turtles_by_season)[-1]
-        lam = np.mean([labren(labren_id)[i.lower()] for i in seasons[i]])
-        turtles_i = entrain_turtles(
-            turtles_by_season[key], turtles_0, lam, lam_c, lam_c_tol = lam_c_tol
-            )
-        turtles_by_season[labels[i]] = np.array(turtles_i)
+    if (by == "month"):
+        labels = [
+            "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", 
+            "Oct", "Nov", "Dec"
+            ]
+        
+        labren_data = labren(labren_id)["ts"]
+        cycle = 12
+    else:
+        labels = ["Summer", "Autumn", "Winter", "Spring"]
+        labren_data = labren(labren_id, by = "season")["ts"]
+        cycle = 4
     
-    if plot == True: 
-        plot_model_density(turtles_by_season, lam_c, labren_id)
+    labels = reorder(labels, start_at)
+    labren_data = reorder(labren_data, start_at)
+    
+    if not n_cycles == 1:
+        labels_0, labren_data_0 = tuple(labels), tuple(labren_data)
+        [labels.extend(labels_0) for i in range(n_cycles - 1)]
+        [labren_data.extend(labren_data_0) for i in range(n_cycles - 1)]
+    
+    if repetitions == 0:
+        turtles = {"unentrain": turtles_0}
+        
+        for i in range(cycle * n_cycles):
+            key = list(turtles)[-1]
+            lam = labren_data[i]
+            turtles_i = entrain_turtles(
+                turtles[key], turtles_0, lam, lam_c, lam_c_tol
+                )
+            turtles[labels[i].lower()] = turtles_i
+    else:
+        turtles_n = {}
+        
+        for i in range(repetitions + 1):
+            turtles_i = {"unentrain": turtles_0}
+            
+            for j in range(cycle * n_cycles):
+                key = list(turtles_i)[-1]
+                lam = labren_data[j]
+                turtles_j = entrain_turtles(
+                    turtles_i[key], turtles_0, lam, lam_c, lam_c_tol
+                    )
+                turtles_i[labels[j].lower()] = turtles_j
+            
+            turtles_n["r_" + str(i + 1)] = turtles_i
+        
+        turtles = average_turtles(turtles_n)
 
-    return([turtles_by_month, turtles_by_season])
+    if plot == True: plot_model_density(
+        turtles, lam_c, labren_id, n_cycles, repetitions
+        )
+    
+    return(turtles)
 
-def plot_model_density(turtles, lam_c, labren_id):
+def plot_model_density(turtles, lam_c, labren_id, n_cycles, repetitions):
+    if len(turtles) == 13:
+        colors = sns.color_palette("tab10", 12)
+    else:
+        colors = ["#f98e09", "#bc3754", "#57106e", "#5ec962"]
+    
     lat = labren(labren_id)["lat"]
-    labels = ["Unentrain", "Summer", "Autumn", "Winter", "Spring"]
-    colors = ["#f98e09", "#bc3754", "#57106e", "#5ec962"]
+    start = list(turtles)[1].title()
+    labels = [i.title() for i in list(turtles)]
     
-    title = ("$\\lambda_c = {lam_c}$, Latitude = ${lat}$")\
-             .format(lam_c = str(lam_c), lat = str(lat))
+    title = ("$\\lambda_c = {lam_c}$, Latitude = ${lat}$, " +\
+             "Cycles = ${n_cycles}$, Start of cycle = {start}, " +\
+             "Repetitions = ${repetitions}$")\
+             .format(lam_c = str(lam_c), lat = str(lat), 
+              n_cycles = str(n_cycles), start = start, 
+              repetitions = str(repetitions))
     
     plt.rcParams.update({'font.size': 10})
     plt.clf()
     fig, ax = plt.subplots()
     
     for i, j in enumerate(turtles):
-        tau_i = np.array(turtles[j])[:, 0]
+        tau_i = [i["tau"] for i in np.array(turtles[j])]
         n = len(tau_i)
         
         if (i == 0):
@@ -199,55 +286,57 @@ def plot_model_density(turtles, lam_c, labren_id):
     ax.set_xlabel("$\\tau$")
     ax.set_ylabel("Kernel Density Estimate (KDE)")
     ax.set_xlim(23.5, 24.6)
-    ax.set_title(title, fontsize = 10)
+    ax.set_title(title, fontsize = 8)
     
     plt.legend(fontsize = 8)
     plt.show()
 
-labren(72272)
-compute_model(labren_id = 72272, )
-
-labren(1)
-compute_model(labren_id = 1)
-
-def invisible(x): return(print("Ignore this message."))
-
-def merge_dict(dict_1, dict_2):
+def average_turtles(turtles_n):
+    n = len(turtles_n)
+    keys = list(turtles_n[list(turtles_n)[0]])
     out = {}
     
-    for i, j in enumerate(dict_1):
-        out[j] = np.append(np.array(dict_1[j]), np.array(dict_1[j]), axis = 0)
+    for i in keys: # i = 0 => "unentrain"
+        turtles_i = []
+        
+        for a, b in enumerate(turtles_n): # a = 0 => b = "r_1"
+            turtles_i.append(turtles_n[b][i])
+        
+        tau_i, k_i = [], []
+        
+        for a in range(len(turtles_i)):
+            tau_i.append([b["tau"] for b in np.array(turtles_i[a])])
+            k_i.append([b["k"] for b in np.array(turtles_i[a])])
+        
+        tau_i = functools.reduce(lambda x, y: np.array(x) + np.array(y), 
+                                 tau_i) / n
+        k_i = functools.reduce(lambda x, y: np.array(x) + np.array(y), 
+                               k_i) / n
+        
+        turtles_i = []
+        
+        for a in range(len(tau_i)):
+            turtles_i.append({"tau": tau_i[a], "k": k_i[a]})
+        
+        out[i] = turtles_i
         
     return(out)
 
-def model(n = 10 **2, tau_range = (23.5, 24.6), tau_mean = 24.15, 
-          tau_dp = 0.2, k_range = (0.001, 0.01), k_mean = 0.001, 
-          k_dp = 0.005, lam_c = 4727.833, lam_c_tol = 1000, labren_id = 1, 
-          r = 3, plot = True):
-    turtles_by_month_n, turtles_by_season_n = {}, {}
+def reorder(x, start_at = 0):
+    n = len(x)
     
-    for i in range(r):
-        model_i = compute_model(
-            n, tau_range, tau_mean, tau_dp, k_range, k_mean, k_dp, lam_c, 
-            lam_c_tol, labren_id, plot = False
-            )
+    if (not start_at == 0):
+        order = list(np.arange(start_at, n))
+        order.extend(list(np.arange(0, start_at)))
         
-        label = "r_" + str(i + 1)
-        turtles_by_month_n[label] = model_i[0]
-        turtles_by_season_n[label] = model_i[1]
-    
-    turtles_by_month_mean = {}
-    
-    for i, j in enumerate(turtles_by_month_n):
-        for k, l in enumerate(turtles_by_month_n[j]):
-            try:
-                invisible(turtles_by_month_mean[l])
-            except:
-                turtles_by_month_mean[l] = turtles_by_month_n[j][l]
-            else:
-                turtles_by_month_mean[l] = [turtles_by_month_mean[l],
-                turtles_by_month_n[j][l]]
-    
-    
-    
+        return([x[i] for i in order])
+    else:
+        return(x)
 
+def invisible(x): return(print("Ignore this message."))
+
+labren(72272)
+x = run_model(labren_id = 72272, by = "season", n_cycles = 2)
+
+labren(1)
+x = run_model(labren_id = 1, by = "season", n_cycles = 2)
